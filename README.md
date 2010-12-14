@@ -1,9 +1,9 @@
 # PACKAGE
 
-The package [http://github.com/sloonz/go-mime-message](mime/message) can be used to procduce MIME messages which can be sent
+The package [mime/message](http://github.com/sloonz/go-mime-message) can be used to procduce MIME messages which can be sent
 as mails to a SMTP server, or put in a local mailbox.
 
-It requires the [http://github.com/sloonz/go-qprintable](qprintable) package.
+It requires the [qprintable](http://github.com/sloonz/go-qprintable) package.
 
 ## VARIABLES
 
