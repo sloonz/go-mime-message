@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=message
+TARG=mime/message
 GOFILES=\
 	message.go\
 	utils.go\

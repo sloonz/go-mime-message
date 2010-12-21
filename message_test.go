@@ -3,7 +3,7 @@ package message
 import (
 	"bytes"
 	"testing"
-	"qprintable"
+	"encoding/qprintable"
 )
 
 const MESSAGE = "Lorem ipsum dolor sit amet, consectetur adipiscing "+

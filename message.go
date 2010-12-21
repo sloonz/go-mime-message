@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"os"
 	"encoding/base64"
-	"qprintable"
+	"encoding/qprintable"
 	"http"
 )
 
