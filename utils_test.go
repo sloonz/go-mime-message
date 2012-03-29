@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-var testData = []struct{decoded, encoded string}{
+var testData = []struct{ decoded, encoded string }{
 	{"test", "test"},
 	{"Bonjour à tous!", "=?UTF-8?Q?Bonjour_=C3=A0_tous!?="},
 	{"Right?", "=?UTF-8?Q?Right=3F?="},

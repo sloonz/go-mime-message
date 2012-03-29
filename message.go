@@ -3,9 +3,9 @@
 package message
 
 import (
-	"github.com/sloonz/go-qprintable"
 	"bytes"
 	"encoding/base64"
+	"github.com/sloonz/go-qprintable"
 	"io"
 	"net/http"
 )

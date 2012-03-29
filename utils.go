@@ -1,7 +1,7 @@
 package message
 
 import (
- "bytes"
+	"bytes"
 )
 
 // Enforced only for base64 and quoted-printable. No limit for binary.
