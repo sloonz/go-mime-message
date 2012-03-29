@@ -1,9 +1,8 @@
 package message
 
 import (
-	"io"
-	"os"
 	"bytes"
+	"io"
 )
 
 type qprintableReader struct {
@@ -12,12 +11,12 @@ type qprintableReader struct {
 	encoder io.Writer
 }
 
-func (r *qprintableReader) Read(p []byte) (n int, err os.Error) {
+func (r *qprintableReader) Read(p []byte) (n int, err error) {
 	for len(p) > n {
 		// Take unencoded data from body and put it to encoder (which will put encoded data in buffer)
 		if (len(p) - n) > r.buf.Len() {
-			_, cerr := io.Copyn(r.encoder, r.body, int64(len(p)-n-r.buf.Len()))
-			if (cerr != nil && cerr != os.EOF) || (cerr == os.EOF && r.buf.Len() == 0) {
+			_, cerr := io.CopyN(r.encoder, r.body, int64(len(p)-n-r.buf.Len()))
+			if (cerr != nil && cerr != io.EOF) || (cerr == io.EOF && r.buf.Len() == 0) {
 				return n, cerr
 			}
 		}
@@ -44,7 +43,7 @@ func min(a, b int) int {
 	return b
 }
 
-func (r *base64Reader) Read(p []byte) (n int, err os.Error) {
+func (r *base64Reader) Read(p []byte) (n int, err error) {
 	if r.shouldWriteLF && len(p) > 0 {
 		n = 1
 		p[0] = byte('\n')
@@ -68,11 +67,11 @@ func (r *base64Reader) Read(p []byte) (n int, err os.Error) {
 
 		// Take unencoded data from body and put it to encoder (which will put encoded data in buffer)
 		if (len(p) - n) > r.buf.Len() {
-			_, cerr := io.Copyn(r.encoder, r.body, int64(len(p)-n-r.buf.Len()))
-			if cerr == os.EOF {
+			_, cerr := io.CopyN(r.encoder, r.body, int64(len(p)-n-r.buf.Len()))
+			if cerr == io.EOF {
 				r.encoder.Close()
 			}
-			if (cerr != nil && cerr != os.EOF) || (cerr == os.EOF && r.buf.Len() == 0) {
+			if (cerr != nil && cerr != io.EOF) || (cerr == io.EOF && r.buf.Len() == 0) {
 				return n, cerr
 			}
 		}

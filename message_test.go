@@ -3,7 +3,9 @@ package message
 import (
 	"bytes"
 	"testing"
-	"encoding/qprintable"
+	"net/textproto"
+	"bufio"
+	"github.com/sloonz/go-qprintable"
 )
 
 const MESSAGE = "Lorem ipsum dolor sit amet, consectetur adipiscing "+
@@ -67,24 +69,6 @@ const MESSAGE_B64ENCODED = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVy
 "cyBuaWJoLiBQcmFlc2VudCBhbGlxdWFtIGV1aXNtb2QgZXJhdCBhYyBjb25ndWUuIFBoYXNlbGx1\r\n"+
 "cyBuZXF1ZSBuaWJoLCBzb2RhbGVzIHZpdGFlIHRpbmNpZHVudCBldCwgYmxhbmRpdCBhIGR1aS4=\r\n"
 
-const FINAL_MESSAGE = "MIME-Version: 1.0\r\n"+
-"Subject: =?UTF-8?Q?=E6=98=A8=E6=97=A5=E3=81=AE=E4=BC=9A=E8=AD=B0?=\r\n"+
-"Content-Type: multipart/alternative; boundary=\"==GoMultipartBoundary:0.\"\r\n"+
-"From: Miller <miller@example.com>\r\n"+
-"To: =?UTF-8?Q?=E7=94=B0=E4=B8=AD?= <tanaka@example.com>\r\n"+
-"\r\n"+
-"--==GoMultipartBoundary:0.\r\n"+
-"Content-Transfer-Encoding: quoted-printable\r\n"+
-"Content-Type: text/plain\r\n"+
-"\r\n"+
-MESSAGE_QENCODED+"\r\n"+
-"--==GoMultipartBoundary:0.\r\n"+
-"Content-Transfer-Encoding: base64\r\n"+
-"Content-Type: application/octet-stream\r\n"+
-"\r\n"+
-MESSAGE_B64ENCODED+"\r\n"+
-"--==GoMultipartBoundary:0.--\r\n"
-
 func TestMessage(t *testing.T) {
 	m := NewMultipartMessage("alternative", "")
 	m.SetHeader("Subject", EncodeWord("昨日の会議"))
@@ -97,14 +81,58 @@ func TestMessage(t *testing.T) {
 	m.AddPart(m1)
 	m.AddPart(m2)
 
+	expected_headers := map[string]string{
+		"Mime-Version": "1.0",
+		"Subject": "=?UTF-8?Q?=E6=98=A8=E6=97=A5=E3=81=AE=E4=BC=9A=E8=AD=B0?=",
+		"Content-Type": "multipart/alternative; boundary=\"==GoMultipartBoundary:0.\"",
+		"From": "Miller <miller@example.com>",
+		"To": "=?UTF-8?Q?=E7=94=B0=E4=B8=AD?= <tanaka@example.com>" }
+	expected_data := "--==GoMultipartBoundary:0.\r\n"+
+		"Content-Transfer-Encoding: quoted-printable\r\n" +
+		"Content-Type: text/plain\r\n\r\n"+
+		MESSAGE_QENCODED+"\r\n"+
+		"--==GoMultipartBoundary:0.\r\n"+
+		"Content-Transfer-Encoding: base64\r\n" +
+		"Content-Type: application/octet-stream\r\n\r\n"+
+		MESSAGE_B64ENCODED+"\r\n"+
+		"--==GoMultipartBoundary:0.--\r\n"
+
+	mbuf := bufio.NewReader(m)
+	tp := textproto.NewReader(mbuf)
+	headers, err := tp.ReadMIMEHeader()
+	if err != nil {
+		t.Errorf("Can't parse resulting message: %v", err)
+	}
+	for k, v := range headers {
+		expected_v, ok := expected_headers[k]
+		if !ok {
+			t.Errorf("Unexpected header %s", k)
+			return
+		}
+		if len(v) != 1 {
+			t.Errorf("Unexpected multiple-values header %s", k)
+			return
+		}
+		if v[0] != expected_v {
+			t.Errorf("%s is %s, expected %s", k, v[0], expected_v)
+			return
+		}
+		delete(expected_headers, k)
+	}
+
 	buf := bytes.NewBuffer(nil)
-	buf.ReadFrom(m)
-	if buf.String() != FINAL_MESSAGE {
+	_, err = buf.ReadFrom(tp.R)
+	if err != nil {
+		t.Errorf("Can't read body: %v", err)
+		return
+	}
+	data := buf.String()
+	if data != expected_data {
 		t.Logf("Message is not what was expected !")
 		t.Logf("Expected:")
-		t.Logf("%#v", FINAL_MESSAGE)
+		t.Logf("%#v", expected_data)
 		t.Logf("Message:")
-		t.Logf("%#v", buf.String())
+		t.Logf("%#v", data)
 		t.Fail()
 	}
 }

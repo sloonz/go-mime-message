@@ -3,12 +3,11 @@
 package message
 
 import (
-	"io"
+	"github.com/sloonz/go-qprintable"
 	"bytes"
-	"os"
 	"encoding/base64"
-	"encoding/qprintable"
-	"http"
+	"io"
+	"net/http"
 )
 
 type Message struct {
@@ -75,7 +74,7 @@ func (m *Message) SetHeader(name, val string) *Message {
 // Read the MIME representation of the message (headers + body). You can do this 
 // only once, since after the first representation this will always return os.EOF.
 // For base64 and quoted-printable encodings, also take care of encoding the body.
-func (m *Message) Read(p []byte) (n int, err os.Error) {
+func (m *Message) Read(p []byte) (n int, err error) {
 	// Write message header to buffer on first call
 	// TODO: wrap headers ?
 	if m.buf == nil {
@@ -109,7 +108,7 @@ func (m *Message) Read(p []byte) (n int, err os.Error) {
 	}
 
 	// Main loop
-	for len(p) > n && err != os.EOF {
+	for len(p) > n && err != io.EOF {
 		if m.buf.Len() > 0 {
 			nn, _ := m.buf.Read(p[n:])
 			n += nn

@@ -27,7 +27,7 @@ var (
 
 type Error string
 
-func (e Error) String() string {
+func (e Error) Error() string {
 	return string(e)
 }
 
