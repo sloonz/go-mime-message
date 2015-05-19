@@ -29,11 +29,12 @@ func (r *qprintableReader) Read(p []byte) (n int, err error) {
 }
 
 type base64Reader struct {
+	eol           []byte
 	body          io.Reader
 	buf           *bytes.Buffer
 	encoder       io.WriteCloser
 	lineSize      int
-	shouldWriteLF bool
+	remainingData []byte
 }
 
 func min(a, b int) int {
@@ -44,24 +45,24 @@ func min(a, b int) int {
 }
 
 func (r *base64Reader) Read(p []byte) (n int, err error) {
-	if r.shouldWriteLF && len(p) > 0 {
-		n = 1
-		p[0] = byte('\n')
-		r.shouldWriteLF = false
-	}
-
 	for len(p) > n {
 		// Manage wraping
 		if r.lineSize == maxLineSize {
 			r.lineSize = 0
-			p[n] = byte('\r')
-			n++
-			if len(p) > n {
-				p[n] = byte('\n')
-				n++
+			r.remainingData = r.eol
+		}
+
+		if r.remainingData != nil {
+			remSize := len(r.remainingData)
+			freeSize := len(p) - n
+			if freeSize > remSize {
+				copy(p[n:n+remSize], r.remainingData)
+				r.remainingData = nil
+				n += remSize
 			} else {
-				r.shouldWriteLF = true
-				return n, err
+				copy(p[n:len(p)], r.remainingData)
+				r.remainingData = r.remainingData[freeSize:]
+				n = len(p)
 			}
 		}
 

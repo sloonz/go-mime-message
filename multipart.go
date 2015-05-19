@@ -39,10 +39,12 @@ func NewMultipartMessage(subtype, boundary string) *MultipartMessage {
 	m.Body = &multipartReader{m, -1, bytes.NewBuffer(nil)}
 	m.SetHeader("Content-Type", "multipart/"+subtype+"; boundary=\""+boundary+"\"")
 	m.Boundary = boundary
+	m.EOL = "\r\n"
 	return m
 }
 
-// Add a message to the multipart message.
+// Add a message to the multipart message. EOL for the part will be inherited
+// from the multipart message.
 // Returns self.
 func (m *MultipartMessage) AddPart(c *Message) *MultipartMessage {
 	m.Parts = append(m.Parts, c)
@@ -65,7 +67,8 @@ func (r *multipartReader) Read(p []byte) (n int, err error) {
 		r.cur = 0
 		r.buf.WriteString("--")
 		r.buf.WriteString(r.m.Boundary)
-		r.buf.WriteString("\r\n")
+		r.buf.WriteString(r.m.EOL)
+		r.m.Parts[r.cur].EOL = r.m.EOL
 	}
 
 	for len(p) > n {
@@ -81,12 +84,13 @@ func (r *multipartReader) Read(p []byte) (n int, err error) {
 			}
 			if merr == io.EOF {
 				r.cur++
-				r.buf.WriteString("\r\n--")
+				r.buf.WriteString(r.m.EOL + "--")
 				r.buf.WriteString(r.m.Boundary)
 				if r.cur < len(r.m.Parts) {
-					r.buf.WriteString("\r\n")
+					r.m.Parts[r.cur].EOL = r.m.EOL
+					r.buf.WriteString(r.m.EOL)
 				} else {
-					r.buf.WriteString("--\r\n")
+					r.buf.WriteString("--" + r.m.EOL)
 				}
 			}
 		} else {

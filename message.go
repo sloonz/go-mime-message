@@ -35,6 +35,11 @@ type Message struct {
 	// internally.
 	Headers map[string]string
 
+	// End of line characters. Defaults to CRLF (as required by most standards), but you may
+	// want change this to "\n" if you intend to write in a Maildir, which requires LF line
+	// endings.
+	EOL string
+
 	// The body of the message
 	Body io.Reader
 
@@ -51,6 +56,7 @@ func NewTextMessage(qpEncoding *qprintable.Encoding, body io.Reader) *Message {
 	m.QPEncoding = qpEncoding
 	m.Body = body
 	m.Headers = make(map[string]string)
+	m.EOL = "\r\n"
 	return m
 }
 
@@ -61,6 +67,7 @@ func NewBinaryMessage(body io.Reader) *Message {
 	m.TE = TE_base64
 	m.Body = body
 	m.Headers = make(map[string]string)
+	m.EOL = "\r\n"
 	return m
 }
 
@@ -71,7 +78,7 @@ func (m *Message) SetHeader(name, val string) *Message {
 	return m
 }
 
-// Read the MIME representation of the message (headers + body). You can do this 
+// Read the MIME representation of the message (headers + body). You can do this
 // only once, since after the first representation this will always return os.EOF.
 // For base64 and quoted-printable encodings, also take care of encoding the body.
 func (m *Message) Read(p []byte) (n int, err error) {
@@ -80,28 +87,28 @@ func (m *Message) Read(p []byte) (n int, err error) {
 	if m.buf == nil {
 		m.buf = bytes.NewBuffer(nil)
 		if !m.isMultipartPart {
-			m.buf.WriteString("MIME-Version: 1.0\r\n")
+			m.buf.WriteString("MIME-Version: 1.0" + m.EOL)
 		}
 		if m.TE != TE_7bit {
 			if (m.TE == TE_8bit || m.TE == TE_binary) && m.isMultipartPart {
 				return n, PartInvalidTransferEncoding
 			} else {
-				m.buf.WriteString("Content-Transfer-Encoding: " + string(m.TE) + "\r\n")
+				m.buf.WriteString("Content-Transfer-Encoding: " + string(m.TE) + m.EOL)
 			}
 		}
 		for name, val := range m.Headers {
-			m.buf.WriteString(name + ": " + val + "\r\n")
+			m.buf.WriteString(name + ": " + val + m.EOL)
 		}
-		m.buf.WriteString("\r\n")
+		m.buf.WriteString(m.EOL)
 	}
 
 	// Create body transform (transfer encoding)
 	if m.bodyReader == nil {
 		buf := bytes.NewBuffer(nil)
 		if m.TE == TE_qprintable {
-			m.bodyReader = &qprintableReader{m.Body, buf, qprintable.NewEncoder(m.QPEncoding, buf)}
+			m.bodyReader = &qprintableReader{m.Body, buf, qprintable.NewEncoderWithEOL(m.EOL, m.QPEncoding, buf)}
 		} else if m.TE == TE_base64 {
-			m.bodyReader = &base64Reader{m.Body, buf, base64.NewEncoder(base64.StdEncoding, buf), 0, false}
+			m.bodyReader = &base64Reader{[]byte(m.EOL), m.Body, buf, base64.NewEncoder(base64.StdEncoding, buf), 0, nil}
 		} else {
 			m.bodyReader = m.Body
 		}
