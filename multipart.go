@@ -68,7 +68,9 @@ func (r *multipartReader) Read(p []byte) (n int, err error) {
 		r.buf.WriteString("--")
 		r.buf.WriteString(r.m.Boundary)
 		r.buf.WriteString(r.m.EOL)
-		r.m.Parts[r.cur].EOL = r.m.EOL
+		if len(r.m.Parts) > 0 {
+			r.m.Parts[r.cur].EOL = r.m.EOL
+		}
 	}
 
 	for len(p) > n {
