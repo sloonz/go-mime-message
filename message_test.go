@@ -71,7 +71,6 @@ const MESSAGE_B64ENCODED = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVy
 	"cyBuZXF1ZSBuaWJoLCBzb2RhbGVzIHZpdGFlIHRpbmNpZHVudCBldCwgYmxhbmRpdCBhIGR1aS4=\r\n"
 
 func TestMessage(t *testing.T) {
-	return
 	m := NewMultipartMessage("alternative", "")
 	m.SetHeader("Subject", EncodeWord("昨日の会議"))
 	m.SetHeader("From", EncodeWord("Miller")+" <miller@example.com>")
