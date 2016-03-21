@@ -145,9 +145,28 @@ A multipart message is a messsage containing other messages
 ```go
 func NewMultipartMessage(subtype, boundary string) *MultipartMessage
 ```
-Create a new multipart message. If you supply the boundary yourself, you must
-ensure that it is valid and not taken anywhere else. You should not modify Body
-field of the returned structure.
+Create a new multipart message.
+
+If boundary is empty, a new one will be automatically generated. If you supply
+one, you must ensure that it is valid and not taken anywhere else.
+
+You should not modify Body field of the returned structure.
+
+#### func  NewMultipartMessageParams
+
+```go
+func NewMultipartMessageParams(subtype, boundary string, params map[string]string) *MultipartMessage
+```
+Create a new multipart message with additional parameters.
+
+If boundary is empty, a new one will be automatically generated. If you supply
+one, you must ensure that it is valid and not taken anywhere else.
+
+Additional parameters (e.g. type for multipart/related) can be supplied. It is
+the responsibility of the caller to encode them (atom / quoted-string according
+to RFC 2822)
+
+You should not modify Body field of the returned structure.
 
 #### func (*MultipartMessage) AddPart
 

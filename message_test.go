@@ -3,6 +3,7 @@ package message
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"github.com/sloonz/go-qprintable"
 	"net/textproto"
 	"strings"
@@ -160,5 +161,22 @@ func TestMessageLF(t *testing.T) {
 
 	if strings.Contains(buf.String(), "\r\n") {
 		t.Error("Unexpecetd CRLF in output")
+	}
+}
+
+func TestMultipartRelated(t *testing.T) {
+	boundary := "==GoMultipartBoundary:0."
+	m := NewMultipartMessageParams("related", boundary,
+		map[string]string{"type": "text/html"})
+	mbuf := bufio.NewReader(m)
+	tp := textproto.NewReader(mbuf)
+	headers, err := tp.ReadMIMEHeader()
+	if err != nil {
+		t.Errorf("Can't parse resulting message: %v", err)
+	}
+	expectedType := fmt.Sprintf("multipart/related; boundary=\"%s\"; type=text/html", boundary)
+	actualType := headers["Content-Type"][0]
+	if expectedType != actualType {
+		t.Errorf("Content-Type is %s, expected %s", actualType, expectedType)
 	}
 }

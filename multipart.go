@@ -17,10 +17,27 @@ type MultipartMessage struct {
 var boundaryGenerator chan string
 var boundaryGeneratorInit sync.Once
 
-// Create a new multipart message. If you supply the boundary yourself, you must
-// ensure that it is valid and not taken anywhere else.
+// Create a new multipart message.
+//
+// If boundary is empty, a new one will be automatically generated. If you supply
+// one, you must ensure that it is valid and not taken anywhere else.
+//
 // You should not modify Body field of the returned structure.
 func NewMultipartMessage(subtype, boundary string) *MultipartMessage {
+	return NewMultipartMessageParams(subtype, boundary, nil) 
+}
+
+// Create a new multipart message with additional parameters.
+//
+// If boundary is empty, a new one will be automatically generated. If you supply
+// one, you must ensure that it is valid and not taken anywhere else.
+//
+// Additional parameters (e.g. type for multipart/related) can be supplied.
+// It is the responsibility of the caller to encode them
+// (atom / quoted-string according to RFC 2822)
+//
+// You should not modify Body field of the returned structure.
+func NewMultipartMessageParams(subtype, boundary string, params map[string]string) *MultipartMessage {
 	boundaryGeneratorInit.Do(func() {
 		boundaryGenerator = make(chan string)
 		go (func() {
@@ -33,11 +50,25 @@ func NewMultipartMessage(subtype, boundary string) *MultipartMessage {
 	if boundary == "" {
 		boundary = <-boundaryGenerator
 	}
+
+	ctBuf := bytes.NewBufferString("multipart/")
+	ctBuf.WriteString(subtype)
+	ctBuf.WriteString("; boundary=\"")
+	ctBuf.WriteString(boundary)
+	ctBuf.WriteString("\"")
+
+	for k, v := range params {
+		ctBuf.WriteString("; ")
+		ctBuf.WriteString(k)
+		ctBuf.WriteByte('=')
+		ctBuf.WriteString(v)
+	}
+
 	m := new(MultipartMessage)
 	m.TE = TE_7bit
 	m.Headers = make(map[string]string)
 	m.Body = &multipartReader{m, -1, bytes.NewBuffer(nil)}
-	m.SetHeader("Content-Type", "multipart/"+subtype+"; boundary=\""+boundary+"\"")
+	m.SetHeader("Content-Type", ctBuf.String())
 	m.Boundary = boundary
 	m.EOL = "\r\n"
 	return m
